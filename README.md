@@ -67,21 +67,21 @@ B B B B B B B B B B B B B B B B B B B B B B B B B B B B B
 Unintuitively, a lower value of rsp actually represents the top of the stack. That's why the OS gives you a lot of room in the negative direction. You can use the stack however you want, but typically each function in your program should have its own "stack frame" that contains local variables. For example, we might use the stack to save a register before calling a function:
 ```js
 function my_function() {
-	rsp -= 8 // 8 byte stack frame can fit rax
-	*rsp = rax
-	another_function() // might clobber rax, but shouldn't mess with *our* stack frame
-	rax = *rsp
-	rsp += 8
-	return
+    rsp -= 8 // 8 byte stack frame can fit rax
+    *rsp = rax
+    another_function() // might clobber rax, but shouldn't mess with *our* stack frame
+    rax = *rsp
+    rsp += 8
+    return
 }
 ```
 This pattern of putting stuff on and taking stuff off the stack is so common that there are special x86 operations for this: push and pop. This function can be rewritten as:
 ```js
 function my_function() {
-	<- rax // subtracts 8 from rsp, then writes rax to the stack
-	another_function()
-	-> rax // reads rax off the stack, then adds 8 to rsp
-	return
+    <- rax // subtracts 8 from rsp, then writes rax to the stack
+    another_function()
+    -> rax // reads rax off the stack, then adds 8 to rsp
+    return
 }
 ```
 
@@ -90,18 +90,18 @@ If you need to use lots of memory, the heap is the way to go. Unlike with the st
 ```js
 // rsi: length, pointer is returned in rax
 function allocate_memory() {
-	// mmap - don't worry about all of these flags
-	@syscall(rax = 9, rdi = 0, rdx = 3, r10 = 0x22, r8 = -1, r9 = 0)
+    // mmap - don't worry about all of these flags
+    @syscall(rax = 9, rdi = 0, rdx = 3, r10 = 0x22, r8 = -1, r9 = 0)
 
-	// ensure that an error hasn't occurred
-	@set_flags(rax & rax)
-	goto fail if /sign
-	return
+    // ensure that an error hasn't occurred
+    @set_flags(rax & rax)
+    goto fail if /sign
+    return
 
-	fail:
-	static allocation_error = "memory allocation failed!\n"
-	@syscall(rax = 1, rdi = 1, rsi = allocation_error, rdx = @len(allocation_error))
-	trap
+    fail:
+    static allocation_error = "memory allocation failed!\n"
+    @syscall(rax = 1, rdi = 1, rsi = allocation_error, rdx = @len(allocation_error))
+    trap
 }
 ```
 If this succeeds, rax contains a pointer to your new memory. You can access it using this cool indexing syntax:
@@ -120,8 +120,8 @@ When you're done with the memory, you can free it using the `munmap` syscall:
 ```js
 // rdi: pointer to be freed, rsi: the original length
 function free_memory() {
-	@syscall(rax = 11) // munmap
-	return
+    @syscall(rax = 11) // munmap
+    return
 }
 ```
 ### Static memory
@@ -149,38 +149,38 @@ Note: see /test_files for more examples.
 ```js
 // rax: integer to be printed
 function print_u64() {
-	// if the number is 0, just print "0"
-	@set_flags(rax & rax)
-	{
-		break if !/zero
-		static zero_string = "0\n"
-		@syscall(rax = 1, rdi = 1, rsi = zero_string, rdx = @len(zero_string))
-		return
-	}
+    // if the number is 0, just print "0"
+    @set_flags(rax & rax)
+    {
+        break if !/zero
+        static zero_string = "0\n"
+        @syscall(rax = 1, rdi = 1, rsi = zero_string, rdx = @len(zero_string))
+        return
+    }
 
-	rcx = 10
-	rsi = rsp - 1
-	rsi[u8] = "\n"
+    rcx = 10
+    rsi = rsp - 1
+    rsi[u8] = "\n"
 
-	{
-		@set_flags(rax & rax)
-		break if /zero
+    {
+        @set_flags(rax & rax)
+        break if /zero
 
-		rdx = 0
-		@unsigned_divmod(rdx:rax, rcx)
+        rdx = 0
+        @unsigned_divmod(rdx:rax, rcx)
 
-		dl += "0"
-		rsi--
-		*rsi = dl
+        dl += "0"
+        rsi--
+        *rsi = dl
 
-		continue
-	}
+        continue
+    }
 
-	rdx = rsp
-	rdx -= rsi
-	@syscall(rax = 1, rdi = 1)
+    rdx = rsp
+    rdx -= rsi
+    @syscall(rax = 1, rdi = 1)
 
-	return
+    return
 }
 ```
 
@@ -188,22 +188,22 @@ function print_u64() {
 ```js
 // rsi: length, pointer is returned in rax
 function allocate_memory() {
-	@syscall(rax = 9, rdi = 0, rdx = 3, r10 = 0x22, r8 = -1, r9 = 0) // mmap
+    @syscall(rax = 9, rdi = 0, rdx = 3, r10 = 0x22, r8 = -1, r9 = 0) // mmap
 
-	// ensure that an error hasn't occurred
-	@set_flags(rax & rax)
-	goto fail if /sign
-	return
+    // ensure that an error hasn't occurred
+    @set_flags(rax & rax)
+    goto fail if /sign
+    return
 
-	fail:
-	static allocation_error = "memory allocation failed!\n"
-	@syscall(rax = 1, rdi = 1, rsi = allocation_error, rdx = @len(allocation_error))
-	trap
+    fail:
+    static allocation_error = "memory allocation failed!\n"
+    @syscall(rax = 1, rdi = 1, rsi = allocation_error, rdx = @len(allocation_error))
+    trap
 }
 
 // rdi: pointer to be freed, rsi: the original length
 function free_memory() {
-	@syscall(rax = 11) // munmap
-	return
+    @syscall(rax = 11) // munmap
+    return
 }
 ```
