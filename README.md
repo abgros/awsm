@@ -173,11 +173,13 @@ These can be used on their own or with a flag conditional.
 }
 ```
 
-Sometimes blocks aren't flexible enough, so in that case you should use `goto`. This is especially useful for error-handling code where you might want to jump there from many parts of your program.
+Sometimes blocks aren't flexible enough, so you can also use `goto`. This is especially useful for error-handling code where you might want to jump there from many parts of your program.
 ```js
 rax += 8975489
 goto signed_overflow_error if /overflow
-// stuff...
+
+// other code...
+
 signed_overflow_error:
 trap // immediately crashes the program
 ```
@@ -226,10 +228,10 @@ rcx = my_function
 // rcx *= 2
 (rcx)(rax = 4, rdi = 93)
 
-(ax)() // invalid: only 64-bit (pointer-sized) places can be called
+(ax)() // invalid: only 64-bit (pointer-sized) places can be called, ax is a 16-bit register
 ```
 
-What's the difference between `goto function` and `function()`? The second one pushes the current address of the instruction pointer (RIP) to the stack. Then, when you do `return`, it pops it and continue executing where it left off. If you futz with the stack, this could pop in garbage data and immediately segfault the program.
+What's the difference between `goto function` and `function()`? The second one pushes the current address of the instruction pointer (RIP) to the stack. Then, when you `return`, it pops it and continues executing where it left off. If you futz with the stack, this could pop in garbage data and immediately segfault the program.
 
 Make sure you understand the following:
 ```js
