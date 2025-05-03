@@ -1302,6 +1302,9 @@ impl Program {
 			"compare_u16" => self.parse_builtin_function(inner, &[0x66, 0xf3, 0xa7], atomic)?, // repe cmpsw
 			"compare_u32" => self.parse_builtin_function(inner, &[0xf3, 0xa7], atomic)?, // repe cmpsd
 			"compare_u64" => self.parse_builtin_function(inner, &[0xf3, 0xf8, 0xa7], atomic)?, // repe cmpsq
+            "load_gdt" => self.parse_builtin_function(inner, &[0x0f, 0x01], atomic)?, // lgdt
+            "load_idt" => self.parse_builtin_function(inner, &[0x0f, 0x01], atomic)?, // lidt
+            "set_ss_busy" => self.parse_builtin_function(inner, &[0xf3, 0x0f, 0x01, 0xe8], atomic)?, // setssbsy
 			_ => Err(format!("invalid command: {name}"))?,
 		}
 		Ok(())
