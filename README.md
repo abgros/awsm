@@ -138,7 +138,119 @@ thing3[u16]++
 ```
 This is useful if you want to create a global variable that can be accessed from anywhere in the problem.
 
+### Types of pointers
+You might have noticed this weird indexing syntax like `thing3[u16]`. What's going on there? The key thing to know is that x86 cares about the *type* of a pointer.
+
+```js
+rax = rdi // move rdi into rax
+rax[u8] = 34 // move 34 into the byte pointed at by rax
+rax[u16] = 34 // move 34 into the word (16 bits) pointed at by rax
+rax[u32] = 34 // move 34 into the dword (32 bits) pointed at by rax
+rax[u64] = 34 // move 34 into the qword (64 bits) pointed at by rax
+
+rax[u8] = rdi // invalid because rdi can't fit in a single byte
+rax[u64] = rdi // move rdi into the qword pointed at by rax
+*rax = rdi // same as the above - the * works if there is a single possible type that the pointer can be
+*rax = 34 // invalid: you need to explicitly specify the pointer type
+```
+More complex examples:
+```js
+rax[1][u16] = 5 // move 5 into the word pointed at by (rax + 1)
+rax[rdx] = rcx // move rdx into the qword pointed at by (rax + rdx) - type inferred automatically
+rax[rcx * 8 + 0xfff] = cx // move cx into the word pointed at by (rax + rcx * 8 + 0xfff) - type inferred automatically
+```
+
 ### Control flow
+The main way to do control flow is with blocks. Blocks don't do anything on their own, but let you use the `break` and `continue` keywords.
+
+These can be used on their own or with a flag conditional.
+```js
+{
+	// do stuff...
+	break if /zero
+	// do stuff...
+	continue
+}
+```
+
+Sometimes blocks aren't flexible enough, so in that case you should use `goto`. This is especially useful for error-handling code where you might want to jump there from many parts of your program.
+```js
+rax += 8975489
+goto signed_overflow_error if /overflow
+// stuff...
+signed_overflow_error:
+trap // immediately crashes the program
+```
+
+You should organize parts of your code into functions.
+```js
+function do_stuff() {
+	// code in here...
+	return
+}
+```
+
+WARNING: functions, as currently implemented, are a very leaky abstraction. To ensure that your code works, make sure to follow these guidelines:
+- Define your functions at the bottom of your program, after the exit syscall, as otherwise they will get run without you having ever called them (in a future version this might be done automatically).
+- Always make sure to add a `return` statement at the end.
+- Don't `goto` into or out of a function or you could f*** up your stack.
+
+Because functions are basically just syntax sugar, these two are equivalent:
+```js
+function my_function() {
+	// stuff...
+	return
+}
+```
+
+```js
+my_function:
+// stuff...
+return
+```
+
+You can call a function like so:
+```js
+my_function(rax = 4, rdi = 93)
+```
+which is equivalent to this:
+```js
+rax = 4
+rdi = 93
+my_function()
+```
+You can actually pretend that anything is a function and call it.
+```js
+rcx = my_function
+// uncomment this for a segfault
+// rcx *= 2
+(rcx)(rax = 4, rdi = 93)
+
+(ax)() // invalid: only 64-bit (pointer-sized) places can be called
+```
+
+What's the difference between `goto function` and `function()`? The second one pushes the current address of the instruction pointer (RIP) to the stack. Then, when you do `return`, it pops it and continue executing where it left off. If you futz with the stack, this could pop in garbage data and immediately segfault the program.
+
+Make sure you understand the following:
+```js
+// (1) stack: [], RIP = 0x1122334455667788
+my_function()
+// (5) stack: [], RIP = 0x112233445566778d
+
+// code in between...
+
+function my_function() {
+	// (2) stack: [0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11], RIP = 0x34302
+	<- 0x3333
+	// (3) stack: [0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x33, 0x33], RIP = 0x34307
+	-> ax
+	// (4) stack: [0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11], RIP = 0x34309
+	return
+}
+```
+
+### Operations
+
 TODO: add more documentation
 
 # Examples
