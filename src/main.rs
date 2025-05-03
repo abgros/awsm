@@ -803,19 +803,19 @@ impl Program {
 	}
 
 	fn parse_inc(&mut self, lvalue: &str, atomic: bool) -> Result<(), String> {
-		self.parse_basic_unary(lvalue, 0xfe, 0, atomic)
+		self.parse_basic_unary(lvalue, 0xfe, 0, atomic, false)
 	}
 
 	fn parse_dec(&mut self, lvalue: &str, atomic: bool) -> Result<(), String> {
-		self.parse_basic_unary(lvalue, 0xfe, 1, atomic)
+		self.parse_basic_unary(lvalue, 0xfe, 1, atomic, false)
 	}
 
 	fn parse_not(&mut self, lvalue: &str, atomic: bool) -> Result<(), String> {
-		self.parse_basic_unary(lvalue, 0xf6, 2, atomic)
+		self.parse_basic_unary(lvalue, 0xf6, 2, atomic, false)
 	}
 
 	fn parse_neg(&mut self, lvalue: &str, atomic: bool) -> Result<(), String> {
-		self.parse_basic_unary(lvalue, 0xf6, 3, atomic)
+		self.parse_basic_unary(lvalue, 0xf6, 3, atomic, false)
 	}
 
 	fn parse_basic_unary(
@@ -824,6 +824,7 @@ impl Program {
 		opcode: u8,
 		ext: u8,
 		atomic: bool,
+        ext_opcode: bool,
 	) -> Result<(), String> {
 		let place = Place::parse(lvalue)?;
 		let opcode = match place {
@@ -835,7 +836,7 @@ impl Program {
 		} else if atomic {
 			self.code.push(0xf0);
 		}
-		self.unary(opcode, false, Some(ext), place, false)
+		self.unary(opcode, ext_opcode, Some(ext), place, false)
 	}
 
 	fn parse_assign(&mut self, lvalue: &str, rvalue: &str) -> Result<(), String> {
@@ -1065,7 +1066,7 @@ impl Program {
 		};
 
 		let ext = if signed { 7 } else { 6 };
-		self.parse_basic_unary(rhs, 0xf6, ext, false)
+		self.parse_basic_unary(rhs, 0xf6, ext, false, false)
 	}
 
 	fn parse_call_setup(&mut self, inner: &str) -> Result<(), String> {
@@ -1302,6 +1303,9 @@ impl Program {
 			"compare_u16" => self.parse_builtin_function(inner, &[0x66, 0xf3, 0xa7], atomic)?, // repe cmpsw
 			"compare_u32" => self.parse_builtin_function(inner, &[0xf3, 0xa7], atomic)?, // repe cmpsd
 			"compare_u64" => self.parse_builtin_function(inner, &[0xf3, 0xf8, 0xa7], atomic)?, // repe cmpsq
+            "load_gdt" => self.parse_basic_unary(inner, 0x01, 2, atomic, true)?, // lgdt
+            "load_idt" => self.parse_basic_unary(inner, 0x01, 3, atomic, true)?, // lidt
+            "set_ss_busy" => self.parse_builtin_function(inner, &[0xf3, 0x0f, 0x01, 0xe8], atomic)?, // setssbsy
 			_ => Err(format!("invalid command: {name}"))?,
 		}
 		Ok(())
